@@ -427,6 +427,28 @@ private[spark] class KubernetesClusterSchedulerBackend(
       podsWithKnownExitReasons.put(pod.getMetadata.getName, exitReason)
     }
   }
+
+  override def createDriverEndpoint(properties: Seq[(String, String)]): DriverEndpoint = {
+    new KubernetesDriverEndpoint(rpcEnv, properties)
+  }
+
+  private class KubernetesDriverEndpoint(
+    rpcEnv: RpcEnv,
+    sparkProperties: Seq[(String, String)])
+    extends DriverEndpoint(rpcEnv, sparkProperties) {
+
+    override def onDisconnected(rpcAddress: RpcAddress): Unit = {
+      addressToExecutorId.get(rpcAddress).foreach { executorId =>
+        if (disableExecutor(executorId)) {
+          RUNNING_EXECUTOR_PODS_LOCK.synchronized {
+            runningExecutorsToPods.get(executorId).foreach { pod =>
+              disconnectedPodsByExecutorIdPendingRemoval.put(executorId, pod)
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 private object KubernetesClusterSchedulerBackend {

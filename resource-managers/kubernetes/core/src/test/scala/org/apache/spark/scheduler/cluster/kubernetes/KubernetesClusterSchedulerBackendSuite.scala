@@ -18,22 +18,23 @@ package org.apache.spark.scheduler.cluster.kubernetes
 
 import java.util.concurrent.{ExecutorService, ScheduledExecutorService, TimeUnit}
 
+import scala.collection.JavaConverters._
+import scala.concurrent.Future
+
 import io.fabric8.kubernetes.api.model.{DoneablePod, Pod, PodBuilder, PodList}
 import io.fabric8.kubernetes.client.{KubernetesClient, Watch, Watcher}
 import io.fabric8.kubernetes.client.Watcher.Action
 import io.fabric8.kubernetes.client.dsl.{FilterWatchListDeletable, MixedOperation, NonNamespaceOperation, PodResource}
 import org.mockito.{AdditionalAnswers, ArgumentCaptor, Mock, MockitoAnnotations}
 import org.mockito.Matchers.{any, eq => mockitoEq}
-import org.mockito.Mockito.{doNothing, never, times, verify, when}
+import org.mockito.Mockito.{mock => _, _}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar._
-import scala.collection.JavaConverters._
-import scala.concurrent.Future
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 import org.apache.spark.deploy.kubernetes.config._
 import org.apache.spark.deploy.kubernetes.constants._
-import org.apache.spark.rpc.{RpcAddress, RpcCallContext, RpcEndpoint, RpcEndpointAddress, RpcEndpointRef, RpcEnv, RpcTimeout}
+import org.apache.spark.rpc._
 import org.apache.spark.scheduler.{ExecutorExited, LiveListenerBus, SlaveLost, TaskSchedulerImpl}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{RegisterExecutor, RemoveExecutor}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
@@ -174,7 +175,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
   }
 
   test("Basic lifecycle expectations when starting and stopping the scheduler.") {
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     assert(executorPodsWatcherArgument.getValue != null)
     assert(allocatorRunnable.getValue != null)
@@ -186,7 +187,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 2)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 2)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     requestExecutorRunnable.getValue.run()
     expectPodCreationWithId(1, FIRST_EXECUTOR_POD)
@@ -201,7 +202,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 2)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 2)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     requestExecutorRunnable.getValue.run()
     expectPodCreationWithId(1, FIRST_EXECUTOR_POD)
@@ -219,7 +220,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 1)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 2)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     requestExecutorRunnable.getValue.run()
     when(podOperations.create(any(classOf[Pod])))
@@ -243,7 +244,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 1)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 1)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     requestExecutorRunnable.getValue.run()
     when(podOperations.create(any(classOf[Pod])))
@@ -280,7 +281,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 1)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 1)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     expectPodCreationWithId(1, FIRST_EXECUTOR_POD)
     when(podOperations.create(any(classOf[Pod]))).thenAnswer(AdditionalAnswers.returnsFirstArg())
@@ -315,7 +316,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
     sparkConf
         .set(KUBERNETES_ALLOCATION_BATCH_SIZE, 1)
         .set(org.apache.spark.internal.config.EXECUTOR_INSTANCES, 1)
-    val scheduler = newSchedulerBackend(true)
+    val scheduler = newSchedulerBackend()
     scheduler.start()
     expectPodCreationWithId(1, FIRST_EXECUTOR_POD)
     when(podOperations.create(any(classOf[Pod]))).thenAnswer(AdditionalAnswers.returnsFirstArg())
@@ -340,7 +341,7 @@ private[spark] class KubernetesClusterSchedulerBackendSuite
       RemoveExecutor("1", SlaveLost("Executor lost for unknown reasons.")))
   }
 
-  private def newSchedulerBackend(externalShuffle: Boolean): KubernetesClusterSchedulerBackend = {
+  private def newSchedulerBackend(): KubernetesClusterSchedulerBackend = {
     new KubernetesClusterSchedulerBackend(
         taskSchedulerImpl,
         rpcEnv,
