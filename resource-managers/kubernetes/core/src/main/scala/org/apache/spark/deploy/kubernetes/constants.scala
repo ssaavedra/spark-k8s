@@ -18,13 +18,11 @@ package org.apache.spark.deploy.kubernetes
 
 package object constants {
   // Labels
-  private[spark] val SPARK_DRIVER_LABEL = "spark-driver"
   private[spark] val SPARK_APP_ID_LABEL = "spark-app-selector"
   private[spark] val SPARK_EXECUTOR_ID_LABEL = "spark-exec-id"
   private[spark] val SPARK_ROLE_LABEL = "spark-role"
   private[spark] val SPARK_POD_DRIVER_ROLE = "driver"
   private[spark] val SPARK_POD_EXECUTOR_ROLE = "executor"
-  private[spark] val SPARK_APP_NAME_ANNOTATION = "spark-app-name"
 
   // Credentials secrets
   private[spark] val DRIVER_CREDENTIALS_SECRETS_BASE_DIR =
@@ -70,34 +68,8 @@ package object constants {
   private[spark] val ENV_PYSPARK_FILES = "PYSPARK_FILES"
   private[spark] val ENV_PYSPARK_PRIMARY = "PYSPARK_PRIMARY"
   private[spark] val ENV_JAVA_OPT_PREFIX = "SPARK_JAVA_OPT_"
-  private[spark] val ENV_MOUNTED_FILES_FROM_SECRET_DIR = "SPARK_MOUNTED_FILES_FROM_SECRET_DIR"
-
-  // Bootstrapping dependencies with the init-container
-  private[spark] val INIT_CONTAINER_ANNOTATION = "pod.beta.kubernetes.io/init-containers"
-  private[spark] val INIT_CONTAINER_SECRET_VOLUME_MOUNT_PATH =
-    "/mnt/secrets/spark-init"
-  private[spark] val INIT_CONTAINER_SUBMITTED_JARS_SECRET_KEY =
-    "downloadSubmittedJarsSecret"
-  private[spark] val INIT_CONTAINER_SUBMITTED_FILES_SECRET_KEY =
-    "downloadSubmittedFilesSecret"
-  private[spark] val INIT_CONTAINER_STAGING_SERVER_TRUSTSTORE_SECRET_KEY = "trustStore"
-  private[spark] val INIT_CONTAINER_STAGING_SERVER_CLIENT_CERT_SECRET_KEY = "ssl-certificate"
-  private[spark] val INIT_CONTAINER_CONFIG_MAP_KEY = "download-submitted-files"
-  private[spark] val INIT_CONTAINER_DOWNLOAD_JARS_VOLUME_NAME = "download-jars-volume"
-  private[spark] val INIT_CONTAINER_DOWNLOAD_FILES_VOLUME_NAME = "download-files"
-  private[spark] val INIT_CONTAINER_PROPERTIES_FILE_VOLUME = "spark-init-properties"
-  private[spark] val INIT_CONTAINER_PROPERTIES_FILE_DIR = "/etc/spark-init"
-  private[spark] val INIT_CONTAINER_PROPERTIES_FILE_NAME = "spark-init.properties"
-  private[spark] val INIT_CONTAINER_PROPERTIES_FILE_PATH =
-    s"$INIT_CONTAINER_PROPERTIES_FILE_DIR/$INIT_CONTAINER_PROPERTIES_FILE_NAME"
-  private[spark] val DEFAULT_SHUFFLE_MOUNT_NAME = "shuffle"
-  private[spark] val INIT_CONTAINER_SECRET_VOLUME_NAME = "spark-init-secret"
-
-  // Bootstrapping dependencies via a secret
-  private[spark] val MOUNTED_SMALL_FILES_SECRET_MOUNT_PATH = "/etc/spark-submitted-files"
 
   // Miscellaneous
-  private[spark] val ANNOTATION_EXECUTOR_NODE_AFFINITY = "scheduler.alpha.kubernetes.io/affinity"
   private[spark] val DRIVER_CONTAINER_NAME = "spark-kubernetes-driver"
   private[spark] val KUBERNETES_MASTER_INTERNAL_URL = "https://kubernetes.default.svc"
   private[spark] val MEMORY_OVERHEAD_FACTOR = 0.10
