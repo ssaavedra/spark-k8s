@@ -16,10 +16,7 @@
  */
 package org.apache.spark.deploy.kubernetes
 
-import java.util.concurrent.TimeUnit
-
 import org.apache.spark.{SPARK_VERSION => sparkVersion}
-import org.apache.spark.deploy.kubernetes.constants._
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.ConfigBuilder
 import org.apache.spark.network.util.ByteUnit
