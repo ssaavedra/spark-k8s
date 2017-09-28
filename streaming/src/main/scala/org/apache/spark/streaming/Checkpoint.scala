@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.SparkHadoopUtil
+import org.apache.spark.internal.config._
 import org.apache.spark.internal.Logging
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.streaming.scheduler.JobGenerator
@@ -71,6 +72,15 @@ class Checkpoint(ssc: StreamingContext, val checkpointTime: Time)
         newSparkConf.set(prop, value)
       }
     }
+
+    val host = newSparkConf.get(DRIVER_HOST_ADDRESS)
+    val bind = newSparkConf.get(DRIVER_BIND_ADDRESS)
+
+    logInfo(
+      s"""Reloading config with the nice stuff
+         | host = ${host}
+         | bindAddress = ${bind}
+       """.stripMargin)
 
     // Add Yarn proxy filter specific configurations to the recovered SparkConf
     val filter = "org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter"

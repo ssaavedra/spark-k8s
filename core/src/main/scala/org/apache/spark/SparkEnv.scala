@@ -172,6 +172,7 @@ object SparkEnv extends Logging {
     } else {
       None
     }
+    logInfo("Hello SparkEnv createDriverEnv 175##")
     create(
       conf,
       SparkContext.DRIVER_IDENTIFIER,
@@ -229,13 +230,20 @@ object SparkEnv extends Logging {
 
     val isDriver = executorId == SparkContext.DRIVER_IDENTIFIER
 
+    logInfo(s"Am I a driver? $isDriver. What is my Id? $executorId")
+
     // Listener bus is only used on the driver
     if (isDriver) {
       assert(listenerBus != null, "Attempted to create driver SparkEnv with null listener bus!")
     }
 
     val securityManager = new SecurityManager(conf, ioEncryptionKey)
+
+    logInfo("I have a security manager")
+    logInfo(s"The securityManager is $securityManager")
+
     ioEncryptionKey.foreach { _ =>
+      logInfo("I have at least an encryption key.")
       if (!securityManager.isEncryptionEnabled()) {
         logWarning("I/O encryption enabled without RPC encryption: keys will be visible on the " +
           "wire.")
@@ -243,8 +251,25 @@ object SparkEnv extends Logging {
     }
 
     val systemName = if (isDriver) driverSystemName else executorSystemName
+
+    logInfo(s"My systemName is $systemName")
+
+    logInfo(
+      s"""The RPC Configuration is:
+         |-------------------------
+	 | systemName:		$systemName
+	 | bindAddress: 	$bindAddress
+	 | advertiseAddress: 	$advertiseAddress
+	 | port: 		$port
+	 | conf:		$conf
+	 | securityManager:	$securityManager
+	 | clientMode:		${!isDriver}
+       """.stripMargin)
+
     val rpcEnv = RpcEnv.create(systemName, bindAddress, advertiseAddress, port, conf,
       securityManager, clientMode = !isDriver)
+
+    logInfo(s"And this is the RpcEnv, $rpcEnv")
 
     // Figure out which port RpcEnv actually bound to in case the original port is 0 or occupied.
     // In the non-driver case, the RPC env's address may be null since it may not be listening
@@ -374,6 +399,8 @@ object SparkEnv extends Logging {
       new OutputCommitCoordinatorEndpoint(rpcEnv, outputCommitCoordinator))
     outputCommitCoordinator.coordinatorRef = Some(outputCommitCoordinatorRef)
 
+    logInfo("LOG before new SparkEnv L380")
+
     val envInstance = new SparkEnv(
       executorId,
       rpcEnv,
@@ -397,6 +424,8 @@ object SparkEnv extends Logging {
       val sparkFilesDir = Utils.createTempDir(Utils.getLocalDir(conf), "userFiles").getAbsolutePath
       envInstance.driverTmpDir = Some(sparkFilesDir)
     }
+
+    logInfo("Returning new Spark Env at create L406")
 
     envInstance
   }
