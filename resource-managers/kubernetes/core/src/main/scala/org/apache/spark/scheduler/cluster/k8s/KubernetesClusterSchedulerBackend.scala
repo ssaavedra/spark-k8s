@@ -122,11 +122,17 @@ private[spark] class KubernetesClusterSchedulerBackend(
           val nodeToLocalTaskCount = getNodesWithLocalTaskCounts
           for (i <- 0 until math.min(
               totalExpectedExecutors.get - runningExecutorsToPods.size, podAllocationSize)) {
-            val (executorId, pod) = allocateNewExecutorPod(nodeToLocalTaskCount)
-            runningExecutorsToPods.put(executorId, pod)
-            runningPodsToExecutors.put(pod.getMetadata.getName, executorId)
-            logInfo(
-              s"Requesting a new executor, total executors is now ${runningExecutorsToPods.size}")
+            try {
+              val (executorId, pod) = allocateNewExecutorPod(nodeToLocalTaskCount)
+              runningExecutorsToPods.put(executorId, pod)
+              runningPodsToExecutors.put(pod.getMetadata.getName, executorId)
+              logInfo(
+                s"Requesting a new executor, total executors is now ${runningExecutorsToPods.size}.")
+            } catch {
+              case e: Exception =>
+                logInfo(
+                  s"Exception while trying to allocate a new Executor Pod. Total executors is ${runningExecutorsToPods.size}.", e)
+            }
           }
         }
       }
