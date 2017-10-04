@@ -399,6 +399,8 @@ class SparkContext(config: SparkConf) extends Logging {
 
     _conf.set("spark.executor.id", SparkContext.DRIVER_IDENTIFIER)
 
+    logInfo(s"Driver identifier is ${SparkContext.DRIVER_IDENTIFIER}")
+
     _jars = Utils.getUserJars(_conf)
     _files = _conf.getOption("spark.files").map(_.split(",")).map(_.filter(_.nonEmpty))
       .toSeq.flatten
@@ -438,6 +440,8 @@ class SparkContext(config: SparkConf) extends Logging {
       _conf.set("spark.repl.class.uri", replUri)
     }
 
+    logInfo("SparkContext ##443##")
+
     _statusTracker = new SparkStatusTracker(this)
 
     _progressBar =
@@ -446,6 +450,8 @@ class SparkContext(config: SparkConf) extends Logging {
       } else {
         None
       }
+
+    logInfo("Before UI ##454##")
 
     _ui =
       if (conf.getBoolean("spark.ui.enabled", true)) {
@@ -459,6 +465,8 @@ class SparkContext(config: SparkConf) extends Logging {
     // the bound port to the cluster manager properly
     _ui.foreach(_.bind())
 
+    logInfo("Bound all UI things ##468##")
+
     _hadoopConfiguration = SparkHadoopUtil.get.newConfiguration(_conf)
 
     // Add each JAR given through the constructor
@@ -469,6 +477,8 @@ class SparkContext(config: SparkConf) extends Logging {
     if (files != null) {
       files.foreach(addFile)
     }
+
+    logInfo(s"Added jars $jars \n\nand files $files")
 
     _executorMemory = _conf.getOption("spark.executor.memory")
       .orElse(Option(System.getenv("SPARK_EXECUTOR_MEMORY")))
@@ -497,6 +507,8 @@ class SparkContext(config: SparkConf) extends Logging {
     _heartbeatReceiver = env.rpcEnv.setupEndpoint(
       HeartbeatReceiver.ENDPOINT_NAME, new HeartbeatReceiver(this))
 
+    logInfo(s"Heartbeat: ${_heartbeatReceiver}")
+
     // Create and start the scheduler
     val (sched, ts) = SparkContext.createTaskScheduler(this, master, deployMode)
     _schedulerBackend = sched
@@ -504,9 +516,13 @@ class SparkContext(config: SparkConf) extends Logging {
     _dagScheduler = new DAGScheduler(this)
     _heartbeatReceiver.ask[Boolean](TaskSchedulerIsSet)
 
+    logInfo(s"scheduler: ${_schedulerBackend}; ts: ${_taskScheduler}, dag: ${_dagScheduler}")
+
     // start TaskScheduler after taskScheduler sets DAGScheduler reference in DAGScheduler's
     // constructor
     _taskScheduler.start()
+
+    logInfo("Started taskScheduler")
 
     _applicationId = _taskScheduler.applicationId()
     _applicationAttemptId = taskScheduler.applicationAttemptId()
@@ -517,11 +533,15 @@ class SparkContext(config: SparkConf) extends Logging {
     _ui.foreach(_.setAppId(_applicationId))
     _env.blockManager.initialize(_applicationId)
 
+    logInfo("Context ##536##")
+
     // The metrics system for Driver need to be set spark.app.id to app ID.
     // So it should start after we get app ID from the task scheduler and set spark.app.id.
     _env.metricsSystem.start()
     // Attach the driver metrics servlet handler to the web ui after the metrics system is started.
     _env.metricsSystem.getServletHandlers.foreach(handler => ui.foreach(_.attachHandler(handler)))
+
+    logInfo("Metrics doing stuff")
 
     _eventLogger =
       if (isEventLogEnabled) {
@@ -549,6 +569,8 @@ class SparkContext(config: SparkConf) extends Logging {
       } else {
         None
       }
+
+    logInfo(s"The execcutorAllocationManager is: ${_executorAllocationManager}")
     _executorAllocationManager.foreach(_.start())
 
     _cleaner =
@@ -557,19 +579,28 @@ class SparkContext(config: SparkConf) extends Logging {
       } else {
         None
       }
+    logInfo(s"Maybe this is a context cleaner: ${_cleaner}")
     _cleaner.foreach(_.start())
 
+    logInfo("XX 1")
     setupAndStartListenerBus()
+    logInfo("XX 2")
     postEnvironmentUpdate()
+    logInfo("XX 3")
     postApplicationStart()
+    logInfo("XX 4")
 
     // Post init
     _taskScheduler.postStartHook()
+    logInfo("XX 5")
     _env.metricsSystem.registerSource(_dagScheduler.metricsSource)
+    logInfo("XX 6")
     _env.metricsSystem.registerSource(new BlockManagerSource(_env.blockManager))
+    logInfo("XX 7")
     _executorAllocationManager.foreach { e =>
       _env.metricsSystem.registerSource(e.executorAllocationManagerSource)
     }
+    logInfo("XX 8")
 
     // Make sure the context is stopped if the user forgets about it. This avoids leaving
     // unfinished event logs around after the JVM exits cleanly. It doesn't help if the JVM
