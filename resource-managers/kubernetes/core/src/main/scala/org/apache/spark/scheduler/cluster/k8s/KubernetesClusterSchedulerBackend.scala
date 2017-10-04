@@ -112,8 +112,13 @@ private[spark] class KubernetesClusterSchedulerBackend(
     private val executorReasonCheckAttemptCounts = new mutable.HashMap[String, Int]
 
     override def run(): Unit = {
+      logInfo("handling disconnected executors")
       handleDisconnectedExecutors()
+      logInfo("Disconnected executors handled")
+
       RUNNING_EXECUTOR_PODS_LOCK.synchronized {
+        logInfo(s"We have totalRegisteredExecutors: ${totalRegisteredExecutors.get()} of ${runningExecutorsToPods.size}. Expected are ${totalExpectedExecutors.get()}.")
+
         if (totalRegisteredExecutors.get() < runningExecutorsToPods.size) {
           logDebug("Waiting for pending executors before scaling")
         } else if (totalExpectedExecutors.get() <= runningExecutorsToPods.size) {
@@ -123,6 +128,8 @@ private[spark] class KubernetesClusterSchedulerBackend(
           for (i <- 0 until math.min(
               totalExpectedExecutors.get - runningExecutorsToPods.size, podAllocationSize)) {
             try {
+              logInfo(
+                s"About to allocate a new Executor Pod, $nodeToLocalTaskCount")
               val (executorId, pod) = allocateNewExecutorPod(nodeToLocalTaskCount)
               runningExecutorsToPods.put(executorId, pod)
               runningPodsToExecutors.put(pod.getMetadata.getName, executorId)
@@ -213,6 +220,7 @@ private[spark] class KubernetesClusterSchedulerBackend(
             .withLabel(SPARK_APP_ID_LABEL, applicationId())
             .watch(new ExecutorPodsWatcher()))
 
+    logInfo(s"We are starting the KubernetesClusterSchedulerBackend. Scheduling pod execution with delay of $podAllocationInterval")
     allocatorExecutor.scheduleWithFixedDelay(
         allocatorRunnable, 0L, podAllocationInterval, TimeUnit.SECONDS)
     shuffleManager.foreach(_.start(applicationId()))
